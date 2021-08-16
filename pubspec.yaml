@@ -32,6 +32,10 @@ dependencies:
   flutter_signin_button: ^2.0.0
   firebase_core: ^1.4.0
   google_sign_in: ^5.0.7
+  flutter_svg: ^0.22.0
+  sqflite:
+  path:
+  flutter_slidable: ^0.6.0
 
 dev_dependencies:
   flutter_test:

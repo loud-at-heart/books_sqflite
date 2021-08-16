@@ -85,7 +85,7 @@ class _SignUpState extends State<SignUp> {
           child: Column(
             children: <Widget>[
               Container(
-                height: 400,
+                height: 350,
                 child: Image(
                   image: AssetImage("assets/images/login.png"),
                   fit: BoxFit.contain,
@@ -109,6 +109,7 @@ class _SignUpState extends State<SignUp> {
                             ),
                             onSaved: (input) => _name = input!),
                       ),
+                      SizedBox(height: 20),
                       Container(
                         child: TextFormField(
                             validator: (input) {
@@ -120,6 +121,7 @@ class _SignUpState extends State<SignUp> {
                                 prefixIcon: Icon(Icons.email)),
                             onSaved: (input) => _email = input!),
                       ),
+                      SizedBox(height: 20),
                       Container(
                         child: TextFormField(
                             validator: (input) {

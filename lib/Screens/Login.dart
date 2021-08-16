@@ -17,8 +17,9 @@ class _LoginState extends State<Login> {
     _auth.authStateChanges().listen((user) {
       if (user != null) {
         print(user);
-
-        Navigator.pushReplacementNamed(context, "/");
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, "/");
+        }
       }
     });
   }
@@ -84,7 +85,7 @@ class _LoginState extends State<Login> {
           child: Column(
             children: <Widget>[
               Container(
-                height: 400,
+                height: 350,
                 child: Image(
                   image: AssetImage("assets/images/login.png"),
                   fit: BoxFit.contain,
@@ -107,6 +108,7 @@ class _LoginState extends State<Login> {
                                 prefixIcon: Icon(Icons.email)),
                             onSaved: (input) => _email = input!),
                       ),
+                      SizedBox(height: 20),
                       Container(
                         child: TextFormField(
                             validator: (input) {
