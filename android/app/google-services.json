@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "613480590575-vl11b7tarldea1e3g8mn0q3qmlgnqt68.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.books_sqflite",
+            "certificate_hash": "ed0c9726e6cbd9e341c421cbf660379a49510498"
+          }
+        },
+        {
           "client_id": "613480590575-vram2btrpq6p9tbnkdem0nba4geucq3a.apps.googleusercontent.com",
           "client_type": 3
         }

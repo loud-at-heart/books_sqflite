@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:books_sqflite/Models/dbmanager.dart';
+import 'package:books_sqflite/Screens/BooksDisplay/Display.dart';
+import 'package:books_sqflite/Widgets/custom_dialog_box.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_gravatar/flutter_gravatar.dart';
 
 class SecondScreen extends StatefulWidget {
   const SecondScreen({Key? key}) : super(key: key);
@@ -24,13 +29,13 @@ class _SecondScreenState extends State<SecondScreen> {
   final _descController = TextEditingController();
   final _formKey = new GlobalKey<FormState>();
   Book? book;
-  List<Book>? booklist;
+  List<Book>? booklist = [];
   late final SlidableController slidableController;
   int? id;
 
   checkAuthentification() async {
     _auth.authStateChanges().listen((user) {
-      if (user == null) {
+      if (user == null && mounted) {
         Navigator.of(context).pushReplacementNamed("start");
       }
     });
@@ -61,7 +66,8 @@ class _SecondScreenState extends State<SecondScreen> {
     super.initState();
     this.checkAuthentification();
     this.getUser();
-    searchBooks();
+    Timer(Duration(milliseconds: 1000), () => searchBooks());
+
     slidableController = SlidableController(
       onSlideAnimationChanged: handleSlideAnimationChanged,
       onSlideIsOpenChanged: handleSlideIsOpenChanged,
@@ -92,7 +98,7 @@ class _SecondScreenState extends State<SecondScreen> {
   void searchQuery(String query) async {
     print('Started Query Searching');
     if (query.isNotEmpty) {
-      List<Book> result = await dbmanager.getSearchBookList(query);
+      List<Book> result = await dbmanager.getSearchBookList(query, user!.email);
       print(result.length);
       setState(() {
         booklist = result;
@@ -108,8 +114,30 @@ class _SecondScreenState extends State<SecondScreen> {
           double width = MediaQuery.of(context).size.width;
           return Scaffold(
             appBar: AppBar(
-              title: Text('Add Book'),
-            ),
+                backgroundColor: Colors.white,
+                automaticallyImplyLeading: false,
+                textTheme: Theme.of(context).textTheme,
+                toolbarHeight: 90.0,
+                elevation: 0.0,
+                bottom: PreferredSize(
+                  preferredSize: Size.fromHeight(90),
+                  child: ListTile(
+                      leading: InkWell(
+                        child: SvgPicture.asset('assets/images/Back.svg'),
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                      title: Text(
+                        id == null ? "Add Book" : "Update Book",
+                        style: TextStyle(
+                          fontSize: 30.0,
+                          color: Color(0xff5E56E7),
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )),
+                )),
             body: ListView(
               children: <Widget>[
                 Form(
@@ -185,6 +213,7 @@ class _SecondScreenState extends State<SecondScreen> {
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -197,10 +226,10 @@ class _SecondScreenState extends State<SecondScreen> {
             children: [
               user != null
                   ? ListTile(
-                      leading: InkWell(
+                      /*leading: InkWell(
                         child: Icon(Icons.power_settings_new),
                         onTap: signOut,
-                      ),
+                      ),*/
                       title: Text(
                         "Hello ${user!.displayName}",
                         style: TextStyle(
@@ -209,7 +238,35 @@ class _SecondScreenState extends State<SecondScreen> {
                           fontFamily: 'Montserrat',
                           fontWeight: FontWeight.w600,
                         ),
-                      ))
+                      ),
+                      trailing: InkWell(
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Color(0xff5E56E7),
+                          child: CircleAvatar(
+                            radius: 17,
+                            backgroundImage: NetworkImage(
+                                Gravatar(user!.email.toString())
+                                    .imageUrl(defaultImage: "identicon")),
+                          ),
+                        ),
+                        onTap: () {
+                          showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return CustomDialogBox(
+                                  title: "Hi ${user!.displayName} !",
+                                  descriptions:
+                                      "Hello ${user!.displayName} you are Logged in as ${user!.email}",
+                                  text: "Logout",
+                                  img: Gravatar(user!.email.toString())
+                                      .imageUrl(defaultImage: "identicon"),
+                                  func: signOut,
+                                );
+                              });
+                        },
+                      ),
+                    )
                   : SizedBox(
                       child: CircularProgressIndicator(),
                       height: 50.0,
@@ -276,48 +333,49 @@ class _SecondScreenState extends State<SecondScreen> {
       ),
       body: SingleChildScrollView(
         child: Container(
+          height: height * 0.7,
           child: !isloggedin
-              ? CircularProgressIndicator()
-              : booklist!.isNotEmpty
-                  ? ListView.builder(
+              ? Center(child: CircularProgressIndicator())
+              : booklist!.length != 0 && user!.email != null
+                  ? ListView.separated(
                       shrinkWrap: true,
                       itemCount: booklist == null ? 0 : booklist!.length,
                       itemBuilder: (BuildContext context, int index) {
                         Book bk = booklist![index];
-                        return Slidable(
-                          actionPane: SlidableStrechActionPane(),
-                          controller: slidableController,
-                          secondaryActions: <Widget>[
-                            new IconSlideAction(
-                              caption: 'Edit',
-                              color: Colors.black45,
-                              icon: Icons.edit,
-                              onTap: () {
-                                setState(() {
-                                  id = bk.id;
-                                  _nameController.text = bk.name;
-                                  _authorController.text = bk.author;
-                                  _descController.text = bk.desc;
-                                  _pushAdd();
-                                });
-                              },
-                            ),
-                            new IconSlideAction(
-                              caption: 'Delete',
-                              color: Colors.red,
-                              icon: Icons.delete,
-                              onTap: () {
-                                dbmanager.deleteBook(bk.id);
-                                setState(() {
-                                  booklist!.removeAt(index);
-                                });
-                              },
-                            ),
-                          ],
-                          child: InkWell(
-                            child: Card(
-                              child: Container(
-                                width: width * 0.9,
+                        return Card(
+                          child: Container(
+                            width: width * 0.9,
+                            child: InkWell(
+                              child: Slidable(
+                                actionPane: SlidableStrechActionPane(),
+                                controller: slidableController,
+                                secondaryActions: <Widget>[
+                                  new IconSlideAction(
+                                    caption: 'Edit',
+                                    color: Colors.black45,
+                                    icon: Icons.edit,
+                                    onTap: () {
+                                      setState(() {
+                                        id = bk.id;
+                                        _nameController.text = bk.name;
+                                        _authorController.text = bk.author;
+                                        _descController.text = bk.desc;
+                                        _pushAdd();
+                                      });
+                                    },
+                                  ),
+                                  new IconSlideAction(
+                                    caption: 'Delete',
+                                    color: Colors.red,
+                                    icon: Icons.delete,
+                                    onTap: () {
+                                      dbmanager.deleteBook(bk.id, user!.email);
+                                      setState(() {
+                                        booklist!.removeAt(index);
+                                      });
+                                    },
+                                  ),
+                                ],
                                 child: ListTile(
                                   leading: Icon(Icons.book),
                                   title: Text('${bk.name}'),
@@ -328,13 +386,23 @@ class _SecondScreenState extends State<SecondScreen> {
                                   ),
                                 ),
                               ),
+                              onTap: () {
+                                FocusScope.of(context).unfocus();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => BookDisplay(
+                                            bk: bk,
+                                          )),
+                                );
+                              },
                             ),
-                            onTap: (){
-
-                            },
                           ),
                         );
                       },
+                      separatorBuilder: (context, index) => SizedBox(
+                        height: 2.0,
+                      ),
                     )
                   : Column(
                       children: <Widget>[
@@ -370,9 +438,11 @@ class _SecondScreenState extends State<SecondScreen> {
     if (_formKey.currentState!.validate()) {
       if (book == null) {
         Book bk = new Book(
-            name: _nameController.text,
-            author: _authorController.text,
-            desc: _descController.text);
+          name: _nameController.text,
+          author: _authorController.text,
+          desc: _descController.text,
+          user: user!.email,
+        );
         dbmanager.insertBook(bk).then((id) => {
               _nameController.clear(),
               _authorController.clear(),
@@ -388,7 +458,8 @@ class _SecondScreenState extends State<SecondScreen> {
   }
 
   searchBooks() async {
-    List<Book> res = await dbmanager.getBookList();
+    print(user!.email);
+    List<Book> res = await dbmanager.getBookList(user!.email);
     setState(() {
       booklist = res;
     });
@@ -398,10 +469,12 @@ class _SecondScreenState extends State<SecondScreen> {
     if (_formKey.currentState!.validate()) {
       if (book == null) {
         Book bk = new Book(
-            id: id,
-            name: _nameController.text,
-            author: _authorController.text,
-            desc: _descController.text);
+          id: id,
+          name: _nameController.text,
+          author: _authorController.text,
+          desc: _descController.text,
+          user: user!.email,
+        );
         dbmanager.updateBook(bk).then((id) => {
               _nameController.clear(),
               _authorController.clear(),
@@ -413,7 +486,7 @@ class _SecondScreenState extends State<SecondScreen> {
               searchBooks()
             });
         setState(() {
-          id=null;
+          id = null;
         });
       }
     }

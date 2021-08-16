@@ -8,10 +8,10 @@ class DbBookManager {
 
   Future openDb() async {
     if (_database == null) {
-      _database = await openDatabase(join(await getDatabasesPath(), "books.db"),
+      _database = await openDatabase(join(await getDatabasesPath(), "booksProj.db"),
           version: 1, onCreate: (Database db, int version) async {
         await db.execute(
-          "CREATE TABLE book(id INTEGER PRIMARY KEY autoincrement, name TEXT, author Text, desc TEXT)",
+          "CREATE TABLE book(id INTEGER PRIMARY KEY autoincrement, name TEXT, author Text, desc TEXT, user TEXT)",
         );
       });
     }
@@ -22,44 +22,46 @@ class DbBookManager {
     return await _database!.insert('book', book.toMap());
   }
 
-  Future<List<Book>> getBookList() async {
+  Future<List<Book>> getBookList(String? user) async {
     await openDb();
-    final List<Map<String, dynamic>> maps = await _database!.query('book');
+    final List<Map<String, dynamic>> maps =
+        await _database!.query('book', where: "user = ? ORDER BY name", whereArgs: [user]);
     return List.generate(maps.length, (i) {
       return Book(
-          id: maps[i]['id'],
-          name: maps[i]['name'],
-          desc: maps[i]['desc'],
-          author: maps[i]['author']);
+        id: maps[i]['id'],
+        name: maps[i]['name'],
+        desc: maps[i]['desc'],
+        author: maps[i]['author'],
+        user: maps[i]['user'],
+      );
     });
   }
 
-  Future<List<Book>> getSearchBookList(String filter) async {
+  Future<List<Book>> getSearchBookList(String filter, String? user) async {
     await openDb();
-    final List<Map<String, dynamic>> maps = await _database!.query(
-        'book',
-        where: "name LIKE ?",
-        whereArgs: ['%$filter%']
-    );
+    final List<Map<String, dynamic>> maps = await _database!.query('book',
+        where: "user = ? AND name LIKE ? ORDER BY name", whereArgs: [user, '%$filter%']);
     return List.generate(maps.length, (i) {
       return Book(
-          id: maps[i]['id'],
-          name: maps[i]['name'],
-          desc: maps[i]['desc'],
-          author: maps[i]['author']);
+        id: maps[i]['id'],
+        name: maps[i]['name'],
+        desc: maps[i]['desc'],
+        author: maps[i]['author'],
+        user: maps[i]['user'],
+      );
     });
   }
-
 
   Future<int> updateBook(Book book) async {
     await openDb();
-    return await _database!
-        .update('book', book.toMap(), where: "id = ?", whereArgs: [book.id]);
+    return await _database!.update('book', book.toMap(),
+        where: "id = ? AND user = ?", whereArgs: [book.id, book.user]);
   }
 
-  Future<void> deleteBook(int? id) async {
+  Future<void> deleteBook(int? id, String? user) async {
     await openDb();
-    await _database!.delete('book', where: "id = ?", whereArgs: [id]);
+    await _database!
+        .delete('book', where: "user = ? AND id = ?", whereArgs: [user, id]);
   }
 }
 
@@ -68,10 +70,16 @@ class Book {
   final String name;
   final String author;
   final String desc;
+  final String? user;
 
-  Book({this.id, required this.name, required this.author, required this.desc});
+  Book(
+      {this.id,
+      required this.name,
+      required this.author,
+      required this.desc,
+      this.user});
 
   Map<String, dynamic> toMap() {
-    return {'name': name, 'author': author, 'desc': desc};
+    return {'name': name, 'author': author, 'desc': desc, 'user': user};
   }
 }

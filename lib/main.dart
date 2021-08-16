@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-import 'Screens/Login.dart';
-import 'Screens/SecondScreen.dart';
-import 'Screens/Signup.dart';
-import 'Screens/Start.dart';
+import 'Screens/Authentication/Login.dart';
+import 'Screens/BooksDisplay/SecondScreen.dart';
+import 'Screens/Authentication/Signup.dart';
+import 'Screens/Authentication/Start.dart';
 import 'Screens/noInternetPage.dart';
 
 Future<void> main() async {
@@ -57,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen>
     internetConnectivity();
     Timer(
         Duration(seconds: 3),
-        () => Navigator.pushReplacement(
+            () => Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (context) => SecondScreen())));
     super.initState();
   }
