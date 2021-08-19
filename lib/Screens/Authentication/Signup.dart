@@ -99,6 +99,7 @@ class _SignUpState extends State<SignUp> {
                     children: <Widget>[
                       Container(
                         child: TextFormField(
+                            textInputAction: TextInputAction.next,
                             validator: (input) {
                               if (input!.isEmpty) return 'Enter Name';
                             },
@@ -112,6 +113,7 @@ class _SignUpState extends State<SignUp> {
                       SizedBox(height: 20),
                       Container(
                         child: TextFormField(
+                            textInputAction: TextInputAction.next,
                             validator: (input) {
                               if (input!.isEmpty) return 'Enter Email';
                             },
@@ -124,6 +126,7 @@ class _SignUpState extends State<SignUp> {
                       SizedBox(height: 20),
                       Container(
                         child: TextFormField(
+                            textInputAction: TextInputAction.done,
                             validator: (input) {
                               if (input!.length < 6)
                                 return 'Provide Minimum 6 Character';

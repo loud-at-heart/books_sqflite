@@ -32,6 +32,8 @@ class _SecondScreenState extends State<SecondScreen> {
   List<Book>? booklist = [];
   late final SlidableController slidableController;
   int? id;
+  bool? fav;
+  Set<Book>_saved = {};
 
   checkAuthentification() async {
     _auth.authStateChanges().listen((user) {
@@ -147,6 +149,7 @@ class _SecondScreenState extends State<SecondScreen> {
                     child: Column(
                       children: <Widget>[
                         TextFormField(
+                    textInputAction: TextInputAction.next,
                           decoration: new InputDecoration(
                               labelText: 'Book Name',
                               hintText: "Enter Book Name"),
@@ -156,6 +159,7 @@ class _SecondScreenState extends State<SecondScreen> {
                               : 'Name Should Not Be empty',
                         ),
                         TextFormField(
+                          textInputAction: TextInputAction.next,
                           decoration: new InputDecoration(
                               labelText: 'Author',
                               hintText: "Enter Author Name"),
@@ -210,6 +214,70 @@ class _SecondScreenState extends State<SecondScreen> {
     );
   }
 
+  void _pushSaved() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) {
+          final tiles = _saved.map(
+                (Book book) {
+              return ListTile(
+                leading: Icon(Icons.book),
+                title: Text(
+                  book.name,
+                ),
+                subtitle: Text(
+                  book.author
+                ),
+                onTap: () {
+                  FocusScope.of(context).unfocus();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => BookDisplay(
+                          bk: book,
+                        )),
+                  );
+                },
+              );
+            },
+          );
+          final divided = tiles.isNotEmpty
+              ? ListTile.divideTiles(context: context, tiles: tiles).toList()
+              : <Widget>[];
+
+          return Scaffold(
+            appBar: AppBar(
+                backgroundColor: Colors.white,
+                automaticallyImplyLeading: false,
+                textTheme: Theme.of(context).textTheme,
+                toolbarHeight: 90.0,
+                elevation: 0.0,
+                bottom: PreferredSize(
+                  preferredSize: Size.fromHeight(90),
+                  child: ListTile(
+                      leading: InkWell(
+                        child: SvgPicture.asset('assets/images/Back.svg'),
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                      ),
+                      title: Text(
+                        "Favourites",
+                        style: TextStyle(
+                          fontSize: 30.0,
+                          color: Color(0xff5E56E7),
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )),
+                )),
+            body: ListView(children: divided),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
@@ -239,32 +307,43 @@ class _SecondScreenState extends State<SecondScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      trailing: InkWell(
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundColor: Color(0xff5E56E7),
-                          child: CircleAvatar(
-                            radius: 17,
-                            backgroundImage: NetworkImage(
-                                Gravatar(user!.email.toString())
-                                    .imageUrl(defaultImage: "identicon")),
+                      trailing: Wrap(
+                        spacing: 12,
+                        children: [
+                          InkWell(
+                            child: CircleAvatar(
+                              radius: 20,
+                              backgroundColor: Color(0xff5E56E7),
+                              child: CircleAvatar(
+                                radius: 17,
+                                backgroundImage: NetworkImage(
+                                    Gravatar(user!.email.toString())
+                                        .imageUrl(defaultImage: "identicon")),
+                              ),
+                            ),
+                            onTap: () {
+                              showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return CustomDialogBox(
+                                      title: "Hi ${user!.displayName} !",
+                                      descriptions:
+                                          "Hello ${user!.displayName} you are Logged in as ${user!.email}",
+                                      text: "Logout",
+                                      img: Gravatar(user!.email.toString())
+                                          .imageUrl(defaultImage: "identicon"),
+                                      func: signOut,
+                                    );
+                                  });
+                            },
                           ),
-                        ),
-                        onTap: () {
-                          showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return CustomDialogBox(
-                                  title: "Hi ${user!.displayName} !",
-                                  descriptions:
-                                      "Hello ${user!.displayName} you are Logged in as ${user!.email}",
-                                  text: "Logout",
-                                  img: Gravatar(user!.email.toString())
-                                      .imageUrl(defaultImage: "identicon"),
-                                  func: signOut,
-                                );
-                              });
-                        },
+                          IconButton(
+                            icon: Icon(Icons.favorite,color: Colors.red,),
+                            onPressed: () {
+                              _pushSaved();
+                            },
+                          )
+                        ],
                       ),
                     )
                   : SizedBox(
@@ -356,6 +435,7 @@ class _SecondScreenState extends State<SecondScreen> {
                                     icon: Icons.edit,
                                     onTap: () {
                                       setState(() {
+                                        fav = bk.fav;
                                         id = bk.id;
                                         _nameController.text = bk.name;
                                         _authorController.text = bk.author;
@@ -369,10 +449,23 @@ class _SecondScreenState extends State<SecondScreen> {
                                     color: Colors.red,
                                     icon: Icons.delete,
                                     onTap: () {
+                                      Book bk_temp = bk;
                                       dbmanager.deleteBook(bk.id, user!.email);
                                       setState(() {
                                         booklist!.removeAt(index);
                                       });
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(SnackBar(
+                                        duration: const Duration(seconds: 10),
+                                        content: Text('Undo Deleting Book'),
+                                        action: SnackBarAction(
+                                          label: 'Undo',
+                                          onPressed: () {
+                                            dbmanager.insertBook(bk_temp);
+                                            searchBooks();
+                                          },
+                                        ),
+                                      ));
                                     },
                                   ),
                                 ],
@@ -383,6 +476,43 @@ class _SecondScreenState extends State<SecondScreen> {
                                     '${bk.author}',
                                     style: TextStyle(
                                         color: Colors.black.withOpacity(0.6)),
+                                  ),
+                                  trailing: IconButton(
+                                    icon: Icon(bk.fav!
+                                        ? Icons.favorite
+                                        : Icons.favorite_border),
+                                    color: bk.fav! ? Colors.red : null,
+                                    onPressed: () {
+                                      setState(() {
+                                        bk.fav!
+                                            ? dbmanager
+                                                .updateBookFav(bk, "false")
+                                                .then((id) => {
+                                                      ScaffoldMessenger
+                                                              .of(context)
+                                                          .showSnackBar(new SnackBar(
+                                                              content: FittedBox(
+                                                                  fit: BoxFit
+                                                                      .scaleDown,
+                                                                  child: new Text(
+                                                                      '${bk.name} Removed form Favourite !')))),
+                                                      searchBooks()
+                                                    })
+                                            : dbmanager
+                                                .updateBookFav(bk, "true")
+                                                .then((id) => {
+                                                      ScaffoldMessenger
+                                                              .of(context)
+                                                          .showSnackBar(new SnackBar(
+                                                              content: FittedBox(
+                                                                  fit: BoxFit
+                                                                      .scaleDown,
+                                                                  child: new Text(
+                                                                      '${bk.name} Added to Favourite !')))),
+                                                      searchBooks()
+                                                    });
+                                      });
+                                    },
                                   ),
                                 ),
                               ),
@@ -460,9 +590,17 @@ class _SecondScreenState extends State<SecondScreen> {
   searchBooks() async {
     print(user!.email);
     List<Book> res = await dbmanager.getBookList(user!.email);
+    Set<Book> savedRes =  await dbmanager.getBookFav(user!.email);
     setState(() {
       booklist = res;
+      _saved = savedRes;
     });
+    booklist!.forEach((element) =>
+        print(element.name)
+    );
+    _saved.forEach((element) =>
+        print(element.name)
+    );
   }
 
   _updateBook(BuildContext context) {
@@ -474,6 +612,7 @@ class _SecondScreenState extends State<SecondScreen> {
           author: _authorController.text,
           desc: _descController.text,
           user: user!.email,
+          fav: fav,
         );
         dbmanager.updateBook(bk).then((id) => {
               _nameController.clear(),
